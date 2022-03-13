@@ -1,0 +1,184 @@
+apiVersion: kops.k8s.io/v1alpha2
+kind: Cluster
+metadata:
+  creationTimestamp: "2022-02-24T00:43:17Z"
+  name: duckhue01.k8s.local
+spec:
+  api:
+    loadBalancer:
+      class: Classic
+      type: Public
+  authorization:
+    rbac: {}
+  channel: stable
+  cloudProvider: aws
+  configBase: s3://duckhue01-state-bucket/duckhue01.k8s.local
+  etcdClusters:
+    - cpuRequest: 200m
+      etcdMembers:
+        - encryptedVolume: true
+          instanceGroup: master-ap-southeast-1a
+          name: a
+      memoryRequest: 100Mi
+      name: main
+    - cpuRequest: 100m
+      etcdMembers:
+        - encryptedVolume: true
+          instanceGroup: master-ap-southeast-1a
+          name: a
+      memoryRequest: 100Mi
+      name: events
+  iam:
+    allowContainerRegistry: true
+    legacy: false
+  kubelet:
+    anonymousAuth: false
+  kubernetesApiAccess:
+    - 0.0.0.0/0
+    - ::/0
+  kubernetesVersion: 1.22.6
+  masterPublicName: api.duckhue01.k8s.local
+  networkCIDR: 172.20.0.0/16
+  networking:
+    kubenet: {}
+  nonMasqueradeCIDR: 100.64.0.0/10
+  sshAccess:
+    - 0.0.0.0/0
+    - ::/0
+  subnets:
+    - cidr: 172.20.32.0/19
+      name: ap-southeast-1a
+      type: Public
+      zone: ap-southeast-1a
+  topology:
+    dns:
+      type: Public
+    masters: public
+    nodes: public
+  nodeTerminationHandler:
+    enabled: true
+    enableSQSTerminationDraining: true
+    managedASGTag: "aws-node-termination-handler/managed"
+  clusterAutoscaler:
+    enabled: true
+    expander: least-waste
+    balanceSimilarNodeGroups: false
+    awsUseStaticInstanceList: false
+    scaleDownUtilizationThreshold: "0.5"
+    skipNodesWithLocalStorage: true
+    skipNodesWithSystemPods: true
+    newPodScaleUpDelay: 0s
+    scaleDownDelayAfterAdd: 10m0s
+    image: k8s.gcr.io/autoscaling/cluster-autoscaler:v1.22.2
+    cpuRequest: "100m"
+    memoryRequest: "300Mi"
+  metricsServer:
+    enabled: true
+  certManager:
+    enabled: true
+    defaultIssuer: DefaultIssuer
+
+
+---
+apiVersion: kops.k8s.io/v1alpha2
+kind: InstanceGroup
+metadata:
+  creationTimestamp: "2022-02-24T00:43:17Z"
+  labels:
+    kops.k8s.io/cluster: duckhue01.k8s.local
+  name: master-ap-southeast-1a
+spec:
+  image: 099720109477/ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-20220131
+  instanceMetadata:
+    httpPutResponseHopLimit: 3
+    httpTokens: required
+  machineType: t3.small
+  maxSize: 1
+  minSize: 1
+  nodeLabels:
+    kops.k8s.io/instancegroup: master-ap-southeast-1a
+  role: Master
+  subnets:
+    - ap-southeast-1a
+
+---
+apiVersion: kops.k8s.io/v1alpha2
+kind: InstanceGroup
+metadata:
+  creationTimestamp: "2022-02-24T00:43:17Z"
+  labels:
+    kops.k8s.io/cluster: duckhue01.k8s.local
+  name: on-demand-ap-southeast-1a
+spec:
+  image: 099720109477/ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-20220131
+  instanceMetadata:
+    httpPutResponseHopLimit: 1
+    httpTokens: required
+  machineType: t3a.small
+  maxSize: 1
+  minSize: 1
+  nodeLabels:
+    kops.k8s.io/instancegroup: on-demand-ap-southeast-1a
+  role: Node
+  subnets:
+    - ap-southeast-1a
+
+---
+apiVersion: kops.k8s.io/v1alpha2
+kind: InstanceGroup
+metadata:
+  creationTimestamp: "2022-02-24T01:26:47Z"
+  labels:
+    kops.k8s.io/cluster: duckhue01.k8s.local
+  name: dev-ap-southeast-1a
+spec:
+  cloudLabels:
+    k8s.io/cluster-autoscaler/duckhue01.k8s.local: "1"
+    k8s.io/cluster-autoscaler/enabled: "1"
+  image: 099720109477/ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-20220131
+  machineType: t3a.small
+  maxSize: 10
+  minSize: 1
+  mixedInstancesPolicy:
+    instances:
+      - t2.small
+      - t3.small
+      - t3a.small
+    onDemandAboveBase: 0
+    onDemandBase: 0
+    spotAllocationStrategy: capacity-optimized
+  nodeLabels:
+    kops.k8s.io/instancegroup: dev-ap-southeast-1a
+  role: Node
+  subnets:
+    - ap-southeast-1a
+
+---
+apiVersion: kops.k8s.io/v1alpha2
+kind: InstanceGroup
+metadata:
+  creationTimestamp: "2022-02-24T01:26:47Z"
+  labels:
+    kops.k8s.io/cluster: duckhue01.k8s.local
+  name: prod-ap-southeast-1a
+spec:
+  cloudLabels:
+    k8s.io/cluster-autoscaler/duckhue01.k8s.local: "1"
+    k8s.io/cluster-autoscaler/enabled: "1"
+  image: 099720109477/ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-20220131
+  machineType: t3a.small
+  maxSize: 10
+  minSize: 1
+  mixedInstancesPolicy:
+    instances:
+      - t2.small
+      - t3.small
+      - t3a.small
+    onDemandAboveBase: 0
+    onDemandBase: 0
+    spotAllocationStrategy: capacity-optimized
+  nodeLabels:
+    kops.k8s.io/instancegroup: prod-ap-southeast-1a
+  role: Node
+  subnets:
+    - ap-southeast-1a
